@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { classify } from "./mock-ai.mjs";
+import { triage } from "./triage.mjs";
 
 const html = await readFile(new URL("./index.html", import.meta.url));
 
@@ -12,9 +12,8 @@ function json(response, status, body) {
 async function handleTriage(request, response) {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
-  const { text } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-  const result = JSON.parse(await classify(text));
-  return json(response, 200, { status: "ready", ...result });
+  const result = await triage(Buffer.concat(chunks).toString("utf8"));
+  return json(response, result.status === "invalid_input" ? 400 : 200, result);
 }
 
 createServer(async (request, response) => {
